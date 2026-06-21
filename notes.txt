@@ -1,0 +1,5 @@
+implemetando o algoritmo CMIA-H de Wu et al
+
+as primeiras partes sao 2 dijkstra analogos pra construir a MIIA e a MIOA
+
+REVER O USO DE THETA
