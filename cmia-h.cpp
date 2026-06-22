@@ -21,6 +21,7 @@ struct MIA{
     vector<int> pai;
     vector<bool>alcanca;
     vector<int> weightless_distance;
+    vector<int> sorted_negative_seeds;
 };
 
 struct Mioa : public MIA {
@@ -63,6 +64,7 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
         q.pop();
 
         if (d_v != mioa.distance[v]) continue;
+        if (negative_seeds.count(v) == 1); continue; // se encontrar uma seed negativa, nao precisa mais ir pra trás
 
         // note to self: o out adj ta com node, distance; aqui preciso acessar inverso pra a fila de prioridade ordenar direitinho
         for (int i = 0; i < out_adj[v].size(); i++) {
@@ -127,6 +129,7 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> 
     q.push({vertex, (long long)0});
     bols[vertex] = 1;
     miia.weightless_distance.reserve(vertices);
+    miia.sorted_negative_seeds.reserve(vertices);
     miia.weightless_distance[vertex] = 0;
 
     while (q.size()) {
@@ -138,6 +141,11 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> 
 
             if (bols[viz.first] == 1) continue;
             bols[viz.first] = 1;
+
+            // CHECAR ISSO AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+            if (miia.alcanca[viz.first] && negative_seeds.count(viz.first) == 1) {
+                miia.sorted_negative_seeds.push_back(a.second+1);
+            }
 
             miia.weightless_distance[viz.first] = a.second+1; // construindo distancia sem pesos para usarmos mais pra frente
 
@@ -154,6 +162,9 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> 
         }
 
     }
+
+    miia.weightless_distance;
+    sort(miia.sorted_negative_seeds.begin(), miia.sorted_negative_seeds.end());
 
 }
 
@@ -295,6 +306,7 @@ signed main () {
 
     montandonegs = false;
     Piis meus_piis[n];
+    map<int, MIA> in_miias_arvores;
 
     for (auto a = neg_s.begin(); a != neg_s.end(); a++) {
         // contruir MIIA
@@ -309,6 +321,7 @@ signed main () {
         build_mia(in_adj, (*a), miia);
         miia.alcanca[(*a)] = true; // tem que alcancar a si mesmo pra nao dar bo no algoritmo de ap
 
+        in_miias_arvores[*a] = miia;
         int dnmaxx = INF;
 
         build_D(in_adj, (*a), miia, D, bols, dnmaxx);
@@ -373,9 +386,54 @@ signed main () {
 
         for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
 
+            
             for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
 
-                //DecInf[*itr2] -= apn[*itr][dnmax] - apn[*itr][min(/*(distancia v com w)*/, dnmax)];
+                // posso passar a guardar todas as seeds negativas atingidas num vetor da miia ordenada por distancia
+                // ai faco uma busca binaria lowerbound com base na dc[vertice]
+                // talvez precise de um minimo em algum lugar
+
+                // essa gambiarra aqui de baixo é porque o upperbound retorna um iterador para o primeiro lugar onde o valor pode ser inserido
+                
+                int outro;
+
+                auto pera = upper_bound(in_miias_arvores[*itr].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), dc[*itr]-1);
+
+                // se o primeiro já for maior, fodase vai ser infinito
+                if (in_miias_arvores[*itr].sorted_negative_seeds[0] > dc[*itr]-1) {
+                    outro = 0;
+                }
+                else { // EXISTE ALGUM!!!!!
+                    outro = *(pera-1);
+                }
+
+
+                DecInf[*itr2] -= apn[*itr][outro] - apn[*itr][min(in_miias_arvores[*itr].weightless_distance[*itr2], outro)];
+
+                
+            }
+
+            // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
+            // e 
+    
+        }
+
+        final_seeds.insert(escolhido);
+
+        for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
+
+            if (*itr == escolhido) continue;
+
+            // updatar a menor distancia de seed positiva
+
+            dc[*itr] = min(dc[*itr], in_miias_arvores[*itr].weightless_distance[escolhido]);
+
+            // construir piis aqui
+
+
+            for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
+
+                //DecInf[*itr2] += apn[*itr][dnmax] - apn[*itr][min(/*(distancia v com w)*/,)];
             }
 
             // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
@@ -385,6 +443,14 @@ signed main () {
 
 
     }
+    
+
+
+    for (auto a = final_seeds.begin(); a != final_seeds.end(); a++) {
+        cout << *a << " ";
+    }
+
+    cout << "\n";
 
 
 
