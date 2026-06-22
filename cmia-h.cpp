@@ -11,6 +11,8 @@ bool montandonegs = true;
 
 double theta, thetas[5] = {0.0025, 0.005, 0.01, 0.02, 0.05};
 
+
+
 set<int> negative_seeds;
 set<int> final_seeds, neg_s;
 
@@ -18,6 +20,7 @@ struct MIA{
     vector<double> distance;
     vector<int> pai;
     vector<bool>alcanca;
+    vector<int> weightless_distance;
 };
 
 struct Mioa : public MIA {
@@ -31,6 +34,7 @@ struct Miia : public MIA {
 struct PIS{
     vector<bool> ta;
     set<int> who;
+    vector<int> distances;
 };
 
 struct Piis : public PIS {
@@ -122,6 +126,8 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> 
 
     q.push({vertex, (long long)0});
     bols[vertex] = 1;
+    miia.weightless_distance.reserve(vertices);
+    miia.weightless_distance[vertex] = 0;
 
     while (q.size()) {
 
@@ -132,6 +138,8 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> 
 
             if (bols[viz.first] == 1) continue;
             bols[viz.first] = 1;
+
+            miia.weightless_distance[viz.first] = a.second+1; // construindo distancia sem pesos para usarmos mais pra frente
 
             if (a.second+1 != 0 && negative_seeds.count(viz.first) == 1) { // so addamos à lista de distancias se for negativo
                 D.insert(a.second+1);
@@ -162,7 +170,7 @@ double ap(int v, vector<pair<int, double>> in_adj[], Miia &miiau, int length, se
     if (negative_seeds.count(v) == 1) { // se eh seed negativa, 1.0
         miiau.activation_probabilities[v] = 1;
     }
-    else if (miiau.alcanca[v] == 0) { // se nao eh atingivel
+    else if (miiau.alcanca[v] == 0 || miiau.weightless_distance[v] > length) { // se nao eh atingivel / distancia maior que limite colocado
         miiau.activation_probabilities[v] = 0;
     }
     else {
@@ -175,10 +183,28 @@ double ap(int v, vector<pair<int, double>> in_adj[], Miia &miiau, int length, se
     return miiau.activation_probabilities[v];
 }
 
+int find_max_decinf(double decinf[]) {
+
+    double maximo = -1;
+    int where = -1;
+
+    for (int i = 0; i < vertices; i++) {
+        if (decinf[i] > maximo && negative_seeds.count(i) == 0 && final_seeds.count(i) == 0) {
+            maximo = decinf[i];
+            where = i;
+        }
+    }
+
+    return where;
+
+}
+
 
 void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS piis, bool bols[] = {0},queue<pii> q ={}) {
 
     q.push({vertex, (long long)0});
+    piis.distances.reserve(vertices);
+    piis.distances[vertex] = 0;
     bols[vertex] = 1;
 
     while (q.size() && q.front().second != dmax) { // so visita os que tem dist menor que dmax
@@ -192,6 +218,8 @@ void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS pi
             if (bols[viz.first] == 1) continue;
             bols[viz.first] = 1;
 
+            piis.distances[viz.first] = a.second+1;
+
             piis.ta[viz.first] = true;
             piis.who.insert(viz.first);
 
@@ -203,17 +231,25 @@ void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS pi
 }
 
 
+
+
 signed main () {
 
     // primeiro vou receber as infos do grafo como se fosse uma questao de maratona
 
-    int n, m, k;
+    int n, m, k, l;
 
-    cin >> n >> m >> k >> theta;
+    cin >> n >> m >> k >> l >> theta;
     vertices = n;
+
+    if (n < k + l) {
+        cout << "pfv coloque entradas que facam sentido; nao da pra ter mais seeds do que vertices\n";
+    }
 
     vector<pair<int, double>> out_adj[n], log_out_adj[n];
     vector<pair<int,double>> in_adj[n], log_in_adj[n];
+
+    double apn[n][n]; // cada no tem ate n probabilidades (distancias that can reach n)
 
     double DecInf[n] = {0};
     int dc[n] = {INF}; // might have to change this tho...... no pseudocodigo ele considera
@@ -234,7 +270,7 @@ signed main () {
 
     // recebe as negative seeds
 
-    for (int i = 0; i < k; i++) {
+    for (int i = 0; i < l; i++) {
         int a;
         cin >> a;
         negative_seeds.insert(--a);
@@ -251,6 +287,9 @@ signed main () {
         out_mias_arvores[*a] = mioa;
         // NegS eh constuido dentro da funcao MIOA
     }
+
+
+    int dnmax;
 
 
 
@@ -270,9 +309,9 @@ signed main () {
         build_mia(in_adj, (*a), miia);
         miia.alcanca[(*a)] = true; // tem que alcancar a si mesmo pra nao dar bo no algoritmo de ap
 
-        int dnmax = INF;
+        int dnmaxx = INF;
 
-        build_D(in_adj, (*a), miia, D, bols, dnmax);
+        build_D(in_adj, (*a), miia, D, bols, dnmaxx);
 
         // como D se refere a distancias entre dois vertices estabelecidas por uma BFS,
         // a distancia maxima eh menor ou igual a N-1
@@ -288,18 +327,26 @@ signed main () {
             miia.activation_probabilities.assign(n, 0); // qtd de tamamhos
 
             // porque que eu preciso construir isso pra todo mia? nao vai dar as mesmas probs nao...?
-            ap((*a), in_adj, miia, (*itr));
+            apn[(*a)][*itr] = ap((*a), in_adj, miia, (*itr));
+            // isso aq ta tipo theta(n*m) pra cada iteração. checar se eu não posso otimizar isso aq de alguma forma
 
         }
 
 
-        build_piis(in_adj, (*a), dnmax, meus_piis[*a]);
+        build_piis(in_adj, (*a), dnmaxx, meus_piis[*a]);
 
         // eu uso um array de presenca ou um set? array eh sempre theta n mas o set pode ser bem menos se alguns nao forem alcancaveis
 
+
+        dnmax = dnmaxx;
+
+        // posso guardar as distancias em comparacao a u no meu piis pra eu nao precisar fazer bfs desnecessarias yk
         for (auto itr = meus_piis[*a].who.begin(); itr != meus_piis[*a].who.end(); itr++) {
-            //DecInf[*itr] += (miia.activation_probabilities[*a] /*- miia.activation_probabilities*/)
-            // agora eu busco a distancia minima e recalculo
+
+            DecInf[*itr] += apn[*a][dnmaxx] - apn[*a][min(meus_piis[*a].distances[*itr], dnmaxx)];
+            // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
+            // e 
+    
         }
 
         // aqui eu faço uma bfs para encontrar todas as distâncias dos nós negativos para o u
@@ -310,7 +357,34 @@ signed main () {
         }*/
     }
 
+    for (int i = 0; i < k; i++) {
 
+        // encontrar o de max decinf
+        // atualizar tudo ao redor dele antes de tirar
+        // adicionar ao conjunto positivo
+
+        int escolhido = find_max_decinf(DecInf);
+
+        // o dnmax depende do no escolhido que odioooooooo
+
+        Pios pios;
+
+        build_piis(out_adj, escolhido, dnmax, pios);
+
+        for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
+
+            for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
+
+                //DecInf[*itr2] -= apn[*itr][dnmax] - apn[*itr][min(/*(distancia v com w)*/, dnmax)];
+            }
+
+            // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
+            // e 
+    
+        }
+
+
+    }
 
 
 
