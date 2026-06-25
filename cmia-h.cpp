@@ -11,6 +11,8 @@ bool montandonegs = true;
 
 double theta, thetas[5] = {0.0025, 0.005, 0.01, 0.02, 0.05};
 
+//veroegocioladonopositivo ou negativo somethibg lije that
+
 
 
 set<int> negative_seeds;
@@ -91,7 +93,9 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
             if (mioa.distance[v] + len < mioa.distance[to]) {
                 mioa.distance[to] = mioa.distance[v] + len; // soma de logn = multiplicacao!!!
                 mioa.pai[to] = v;
-                q.push({mioa.distance[to], to});
+                if (negative_seeds.count(v) == 0) { // so seguimos para avaliar os vizinhos se nao for negativo!!
+                    q.push({mioa.distance[to], to});
+                }
             }
 
         }
@@ -124,7 +128,7 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
 }*/
 
 
-void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA miia, set<int> &D, bool bols[], int &dnmax, queue<pii> q ={}, int L = 0, bool waaait4me = true) {
+void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA &miia, set<int> &D, bool bols[], int &dnmax, queue<pii> q ={}, int L = 0, bool waaait4me = true) {
 
     q.push({vertex, (long long)0});
     bols[vertex] = 1;
@@ -197,7 +201,7 @@ double ap(int v, vector<pair<int, double>> in_adj[], Miia &miiau, int length, se
 int find_max_decinf(double decinf[]) {
 
     double maximo = -1;
-    int where = -1;
+    int where = -1;// recomputo piis aqui
 
     for (int i = 0; i < vertices; i++) {
         if (decinf[i] > maximo && negative_seeds.count(i) == 0 && final_seeds.count(i) == 0) {
@@ -211,12 +215,14 @@ int find_max_decinf(double decinf[]) {
 }
 
 
-void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS piis, bool bols[] = {0},queue<pii> q ={}) {
+void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS &piis, bool bols[] = {0},queue<pii> q ={}) {
 
     q.push({vertex, (long long)0});
-    piis.distances.reserve(vertices);
+    //piis.distances.reserve(vertices);
+    piis.distances.assign(vertices,0);
     piis.distances[vertex] = 0;
     bols[vertex] = 1;
+    piis.ta.assign(vertices,0);
 
     while (q.size() && q.front().second != dmax) { // so visita os que tem dist menor que dmax
 
@@ -228,6 +234,7 @@ void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS pi
 
             if (bols[viz.first] == 1) continue;
             bols[viz.first] = 1;
+            if (negative_seeds.count(viz.first) == 1) continue;
 
             piis.distances[viz.first] = a.second+1;
 
@@ -428,12 +435,26 @@ signed main () {
 
             dc[*itr] = min(dc[*itr], in_miias_arvores[*itr].weightless_distance[escolhido]);
 
-            // construir piis aqui
+            build_piis(in_adj, *itr, dc[*itr], meus_piis[*itr]);
 
 
             for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
 
-                //DecInf[*itr2] += apn[*itr][dnmax] - apn[*itr][min(/*(distancia v com w)*/,)];
+                int outro;
+
+                auto pera = upper_bound(in_miias_arvores[*itr].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), dc[*itr]-1);
+
+                // se o primeiro já for maior, fodase vai ser infinito
+                if (in_miias_arvores[*itr].sorted_negative_seeds[0] > dc[*itr]-1) {
+                    outro = 0;
+                }
+                else { // EXISTE ALGUM!!!!!
+                    outro = *(pera-1);
+                }
+
+                //rever isso aqui
+
+                DecInf[*itr2] += apn[*itr][outro] - apn[*itr][min(in_miias_arvores[*itr].weightless_distance[*itr2],outro)];
             }
 
             // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
