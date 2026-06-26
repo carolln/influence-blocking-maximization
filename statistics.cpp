@@ -11,6 +11,7 @@ using pdi = pair<double, int>;
 
 signed main(){
     string filename = "./output_meio/";
+    string outname = "./output_final/";
     string s;
     cout << "digite griddy para greedy e cmia para cmia-h\n";
     cin >> s;
@@ -21,9 +22,11 @@ signed main(){
 
     if(s == "griddy"){
         filename += "greedy-seeds.txt";
+        outname += "greedy-seeds.txt";
     }
     else if(s == "cmia"){
         filename += "cmia-h-seeds.txt";
+        outname += "cmia-h-seeds.txt";
     }
     else{
         cout << "errou os nomes tente denovo\n";
@@ -103,6 +106,12 @@ signed main(){
     cout << "salvados pela heuristica:               " << salvos / R ;
     if (base > 0) cout << "   (" << 100.0 * salvos / base << "% bloqueado)";
     cout << "\n";
+
+    ofstream outt;
+
+    outt.open(outname);
+    outt << "alcance negativo geral: " << base / R << " nos\n" << "ainda ativados com blockers:          " << massa / R<< "salvados pela heuristica:               " << salvos / R ;
+    if (base > 0) outt << "   (" << 100.0 * salvos / base << "% bloqueado)" << "\n";
 
     return 0;
 }
