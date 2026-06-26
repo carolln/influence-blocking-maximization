@@ -66,7 +66,7 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
         q.pop();
 
         if (d_v != mioa.distance[v]) continue;
-        if (negative_seeds.count(v) == 1); continue; // se encontrar uma seed negativa, nao precisa mais ir pra trás
+        //if (v != vertex && negative_seeds.count(v) == 1) continue; // se encontrar uma seed negativa, nao precisa mais ir pra trás
 
         // note to self: o out adj ta com node, distance; aqui preciso acessar inverso pra a fila de prioridade ordenar direitinho
         for (int i = 0; i < out_adj[v].size(); i++) {
@@ -81,10 +81,10 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
             }*/
 
             // seta todos os que sao alcancaveis e tem uma prob menor ou igual a theta
-            if (mioa.alcanca[out_adj[v][i].first] == 0 && min(mioa.distance[v] == INFD ? mioa.distance[v] : mioa.distance[v] + len, mioa.distance[out_adj[v][i].second]) <= -1*log(theta)) {
+            if (mioa.alcanca[out_adj[v][i].first] == 0 && min(mioa.distance[v] + len, mioa.distance[to]) <= -1*log(theta)) {
                 mioa.alcanca[out_adj[v][i].first] = true;
 
-                if (negative_seeds.count(out_adj[v][i].first) == 0 && montandonegs) { // isso era pra tirar a redundancia mas meio que fodase se uma outra negative atingir isso aq ele tenta add de novo
+                if (montandonegs && negative_seeds.count(out_adj[v][i].first) == 0) { // isso era pra tirar a redundancia mas meio que fodase se uma outra negative atingir isso aq ele tenta add de novo
                     neg_s.insert(out_adj[v][i].first);
                 }
             }
@@ -93,7 +93,7 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
             if (mioa.distance[v] + len < mioa.distance[to]) {
                 mioa.distance[to] = mioa.distance[v] + len; // soma de logn = multiplicacao!!!
                 mioa.pai[to] = v;
-                if (negative_seeds.count(v) == 0) { // so seguimos para avaliar os vizinhos se nao for negativo!!
+                if (negative_seeds.count(to) == 0 && mioa.alcanca[to]) { // so seguimos para avaliar os vizinhos se nao for negativo!!
                     q.push({mioa.distance[to], to});
                 }
             }
@@ -132,7 +132,7 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA &miia, set<int>
 
     q.push({vertex, (long long)0});
     bols[vertex] = 1;
-    miia.weightless_distance.reserve(vertices);
+    miia.weightless_distance.assign(vertices, -1);
     miia.sorted_negative_seeds.reserve(vertices);
     miia.weightless_distance[vertex] = 0;
 
@@ -157,7 +157,7 @@ void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA &miia, set<int>
                 D.insert(a.second+1);
             }
 
-            if (waaait4me && final_seeds.count(viz.first) == 1) {
+            if (waaait4me && final_seeds.count(viz.first) == 1) { // procurando uma seed positiva
                 dnmax = a.second; // menor distancia ate positivo - 1
                 waaait4me = false;
             }
@@ -214,27 +214,31 @@ int find_max_decinf(double decinf[]) {
 
 }
 
-
-void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS &piis, bool bols[] = {0},queue<pii> q ={}) {
+// dmax aqui eh a menor distancia positica ou a maior negativa possivel?
+void build_piis(vector<pair<int, double>> in_adj[], int vertex, int dmax, PIS &piis, vector<bool> bols = {0},queue<pii> q ={}) {
 
     q.push({vertex, (long long)0});
     //piis.distances.reserve(vertices);
-    piis.distances.assign(vertices,0);
+    piis.distances.assign(vertices,-1);
     piis.distances[vertex] = 0;
+    bols.assign(vertices,false);
     bols[vertex] = 1;
     piis.ta.assign(vertices,0);
+    piis.who.clear();
 
-    while (q.size() && q.front().second != dmax) { // so visita os que tem dist menor que dmax
+    while (q.size() && q.front().second < dmax) { // so visita os que tem dist menor que dmax
 
         auto a = q.front();
         q.pop();
-        if (a.second == dmax) break;
+        if (a.second >= dmax) break;
 
         for (auto viz : in_adj[a.first]) {
 
             if (bols[viz.first] == 1) continue;
             bols[viz.first] = 1;
-            if (negative_seeds.count(viz.first) == 1) continue;
+            if (negative_seeds.count(viz.first) == 1) continue; // VER SE ISSO FAZ SENTIDO
+            // cause like..... a gente nao vai ter acesso a uma seed nao inicializada se tiver uma
+            // negativa no meio do caminho
 
             piis.distances[viz.first] = a.second+1;
 
@@ -273,6 +277,10 @@ signed main () {
     int dc[n] = {INF}; // might have to change this tho...... no pseudocodigo ele considera
                         // o estado como sendo vertice, conjunto atual das seeds positivas Sp
                         // talvez bitset seja a melhor opção?
+
+    for (int i = 0; i < n; i++) { // a inicializacao de cima nao estava funcionando for some reason
+        dc[i] = INF;
+    }
 
     for (int i = 0; i < m; i++) {
         int a, b;
@@ -328,7 +336,7 @@ signed main () {
         build_mia(in_adj, (*a), miia);
         miia.alcanca[(*a)] = true; // tem que alcancar a si mesmo pra nao dar bo no algoritmo de ap
 
-        in_miias_arvores[*a] = miia;
+        
         int dnmaxx = INF;
 
         build_D(in_adj, (*a), miia, D, bols, dnmaxx);
@@ -340,7 +348,8 @@ signed main () {
 
         // DNMAX = MAIOR DISTANCIA MENOR QUE UMA POSITIVE SEED; COMECA COMO INF
 
-        
+        // quando a distância de um positivo é 1, a probabilidade de ativacao negativa de um nó é 0!
+        apn[(*a)][0] = 0;
         
         for (auto itr = D.begin(); itr != D.end(); itr++) {
 
@@ -357,15 +366,34 @@ signed main () {
 
         // eu uso um array de presenca ou um set? array eh sempre theta n mas o set pode ser bem menos se alguns nao forem alcancaveis
 
+        in_miias_arvores[*a] = miia;
 
-        dnmax = dnmaxx;
+        //dnmax = dnmaxx;
+        dnmax = *(--D.end()); // maior distancia menor que uma positiva (ainda nao temos positivas)
+        
 
         // posso guardar as distancias em comparacao a u no meu piis pra eu nao precisar fazer bfs desnecessarias yk
         for (auto itr = meus_piis[*a].who.begin(); itr != meus_piis[*a].who.end(); itr++) {
 
-            DecInf[*itr] += apn[*a][dnmaxx] - apn[*a][min(meus_piis[*a].distances[*itr], dnmaxx)];
-            // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
-            // e 
+
+            // caso adicionassemos o itr no nosso conjunto de seeds positivas, o dnmax
+            // seria o minimo entre o dnmax atual (maior seed negativa atingida, calculada com o D)
+            // e a maior distancia menor que a distancia entre a e o nó que estamos avaliando agora
+
+            int outro;
+
+            auto pera = upper_bound(in_miias_arvores[*a].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), meus_piis[*a].distances[*itr]-1);
+
+            // se o primeiro já for maior, fodase vai ser infinito
+            if (in_miias_arvores[*a].sorted_negative_seeds[0] > meus_piis[*a].distances[*itr]-1) {
+                outro = 0;
+            }
+            else { // EXISTE ALGUM!!!!!
+                outro = *(pera-1);
+            }
+
+            DecInf[*itr] += apn[*a][dnmax] - apn[*a][min(meus_piis[*a].distances[*itr], outro)];
+            
     
         }
 
@@ -389,12 +417,12 @@ signed main () {
 
         Pios pios;
 
-        build_piis(out_adj, escolhido, dnmax, pios);
+        build_piis(out_adj, escolhido, dnmax, pios); // no pios nao importa a distancia
 
         for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
 
             
-            for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
+            for (auto itr2 = meus_piis[*itr].who.begin(); itr2 != meus_piis[*itr].who.end(); itr2++) {
 
                 // posso passar a guardar todas as seeds negativas atingidas num vetor da miia ordenada por distancia
                 // ai faco uma busca binaria lowerbound com base na dc[vertice]
@@ -415,7 +443,21 @@ signed main () {
                 }
 
 
-                DecInf[*itr2] -= apn[*itr][outro] - apn[*itr][min(in_miias_arvores[*itr].weightless_distance[*itr2], outro)];
+                int outro2;
+
+                auto pera2 = upper_bound(in_miias_arvores[*itr].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), min(in_miias_arvores[*itr].weightless_distance[*itr2]-1, dc[*itr]-1));
+
+                // se o primeiro já for maior, fodase vai ser infinito
+                if (in_miias_arvores[*itr].sorted_negative_seeds[0] > min(in_miias_arvores[*itr].weightless_distance[*itr2]-1, dc[*itr]-1)) {
+                    outro2 = 0;
+                }
+
+                else { // EXISTE ALGUM!!!!!
+                    outro2 = *(pera2-1);
+                }
+
+
+                DecInf[*itr2] -= apn[*itr][outro] - apn[*itr][outro2];
 
                 
             }
@@ -435,10 +477,24 @@ signed main () {
 
             dc[*itr] = min(dc[*itr], in_miias_arvores[*itr].weightless_distance[escolhido]);
 
-            build_piis(in_adj, *itr, dc[*itr], meus_piis[*itr]);
+
+            // encontrando a maior seed negativa que eh menor que dc[*itr]
+            int outroo;
+
+            auto pera = upper_bound(in_miias_arvores[*itr].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), dc[*itr]-1);
+
+            // se o primeiro já for maior, fodase vai ser infinito
+            if (in_miias_arvores[*itr].sorted_negative_seeds[0] > dc[*itr]-1) {
+                outroo = 0;
+            }
+            else { // EXISTE ALGUM!!!!!
+                outroo = *(pera-1);
+            }
+
+            build_piis(in_adj, *itr, outroo, meus_piis[*itr]);
 
 
-            for (auto itr2 = meus_piis[escolhido].who.begin(); itr2 != meus_piis[escolhido].who.end(); itr2++) {
+            for (auto itr2 = meus_piis[*itr].who.begin(); itr2 != meus_piis[*itr].who.end(); itr2++) {
 
                 int outro;
 
@@ -452,9 +508,21 @@ signed main () {
                     outro = *(pera-1);
                 }
 
-                //rever isso aqui
 
-                DecInf[*itr2] += apn[*itr][outro] - apn[*itr][min(in_miias_arvores[*itr].weightless_distance[*itr2],outro)];
+                int outro2;
+
+                auto pera2 = upper_bound(in_miias_arvores[*itr].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), min(in_miias_arvores[*itr].weightless_distance[*itr2]-1, dc[*itr]-1));
+
+                // se o primeiro já for maior, fodase vai ser infinito
+                if (in_miias_arvores[*itr].sorted_negative_seeds[0] > min(in_miias_arvores[*itr].weightless_distance[*itr2]-1, dc[*itr]-1)) {
+                    outro2 = 0;
+                }
+
+                else { // EXISTE ALGUM!!!!!
+                    outro2 = *(pera2-1);
+                }
+
+                DecInf[*itr2] += apn[*itr][outro] - apn[*itr][outro2];
             }
 
             // como eu já computei as distancias de cada nó para o nosso u (e também as probs de todas as distâncias atingíveis),
@@ -468,7 +536,7 @@ signed main () {
 
 
     for (auto a = final_seeds.begin(); a != final_seeds.end(); a++) {
-        cout << *a << " ";
+        cout << (*a)+1 << " ";
     }
 
     cout << "\n";
