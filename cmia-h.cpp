@@ -1,4 +1,6 @@
 #include <bits/stdc++.h>
+#include <chrono>
+#include <fstream>
 using namespace std;
 #define int long long
 int INF = LLONG_MAX;
@@ -6,10 +8,11 @@ double INFD = DBL_MAX;
 using pii = pair<int, int>;
 using pdi = pair<double, int>;
 int vertices;
+vector<double> DecInf;
 
 bool montandonegs = true;
 
-double theta, thetas[5] = {0.0025, 0.005, 0.01, 0.02, 0.05};
+double theta = 0.002, thetas[5] = {0.0025, 0.005, 0.01, 0.02, 0.05};
 
 //veroegocioladonopositivo ou negativo somethibg lije that
 
@@ -198,7 +201,7 @@ double ap(int v, vector<pair<int, double>> in_adj[], Miia &miiau, int length, se
     return miiau.activation_probabilities[v];
 }
 
-int find_max_decinf(double decinf[]) {
+int find_max_decinf(vector<double> decinf) {
 
     double maximo = -1;
     int where = -1;// recomputo piis aqui
@@ -259,13 +262,15 @@ signed main () {
 
     // primeiro vou receber as infos do grafo como se fosse uma questao de maratona
 
+    auto old = chrono::steady_clock::now();
+
     int n, m, k, l;
 
-    cin >> n >> m >> k >> l >> theta;
+    cin >> n >> m >> k >> l;
     vertices = n;
 
     if (n < k + l) {
-        cout << "pfv coloque entradas que facam sentido; nao da pra ter mais seeds do que vertices\n";
+        cout << "pfv coloque entr.assignadas que facam sentido; nao da pra ter mais seeds do que vertices\n";
     }
 
     vector<pair<int, double>> out_adj[n], log_out_adj[n];
@@ -273,7 +278,8 @@ signed main () {
 
     double apn[n][n]; // cada no tem ate n probabilidades (distancias that can reach n)
 
-    double DecInf[n] = {0};
+    
+    DecInf.assign(n, 0);
     int dc[n] = {INF}; // might have to change this tho...... no pseudocodigo ele considera
                         // o estado como sendo vertice, conjunto atual das seeds positivas Sp
                         // talvez bitset seja a melhor opção?
@@ -286,7 +292,7 @@ signed main () {
         int a, b;
         double weight;
         cin >> a >> b >> weight; // edge que vai de a a b (sai de a(out), entra em b(in))
-        a--,b--;
+        //a--,b--; o dataset ja ta 0 indexado
 
         // adding the edge to both a's out-adjacency list and b's in-adjacency list
         in_adj[b].push_back({a, weight});
@@ -299,7 +305,7 @@ signed main () {
     for (int i = 0; i < l; i++) {
         int a;
         cin >> a;
-        negative_seeds.insert(--a);
+        negative_seeds.insert(a);
 
     }
 
@@ -532,16 +538,30 @@ signed main () {
 
 
     }
-    
+
+
+    auto duracao = chrono::steady_clock::now() - old;
+
+
+    ofstream output;
+
+    output.open("output_meio/cmia-h-seeds.txt");
+
 
 
     for (auto a = final_seeds.begin(); a != final_seeds.end(); a++) {
-        cout << (*a)+1 << " ";
+        output << (*a) << " ";
     }
-
+    
     cout << "\n";
 
+    output.close();
 
+    output.open("output_meio/cmia-h-time-nandatasets/NetHEPT.txtoseconds.txt");
+
+    output << chrono::duration_cast<chrono::nanoseconds>(duracao).count() << "\n";
+
+    output.close();
 
     return 0;
 }
