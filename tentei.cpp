@@ -111,7 +111,7 @@ set<int> greedy(int n, vector<pair<int, double>> out_adj[], set<int> &Sa,  int k
         int melhor_v = -1;
 
         for (int v = 0; v < n; v++) {                  // linha 4: v em N - AL
-            if (AL.count(v)) continue;
+            if (AL.count(v) || Sa.count(v)) continue; //pov ele poderia usar o adversario como seed
 
             double sv = 0;                             // linha 5
             for (int j = 0; j < R; j++)                // linha 6: j = 1..R
@@ -146,9 +146,14 @@ signed main () {
     set<int> Sa;                                       // adversarios (AC). caso simples: so o na
     int sa_size; 
     cin >> sa_size;
-    for (int i = 0; i < sa_size; i++) { 
-        int a; cin >> a; Sa.insert(--a);
-     }
+    bool rand_inimigos = true; // se true, gera aleatoriamente os adversarios, senao le do input
+    if (rand_inimigos) {
+        Sa = random_inimigso(n, sa_size);   // gera sa_size adversarios aleatorios
+    } else {
+        for (int i = 0; i < sa_size; i++) {
+            int a; cin >> a; Sa.insert(--a);
+        }
+    }
 
     int r, k, R;                                       // delay, orcamento, carlos
     cin >> r >> k >> R;
