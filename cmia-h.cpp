@@ -428,7 +428,8 @@ signed main () {
 
         for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
 
-            
+            if (neg_s.count(*itr) == 0) continue; 
+
             for (auto itr2 = meus_piis[*itr].who.begin(); itr2 != meus_piis[*itr].who.end(); itr2++) {
 
                 // posso passar a guardar todas as seeds negativas atingidas num vetor da miia ordenada por distancia
@@ -479,6 +480,7 @@ signed main () {
         for (auto itr = pios.who.begin() ; itr != pios.who.end(); itr++) {
 
             if (*itr == escolhido) continue;
+            if (neg_s.count(*itr) == 0) continue;
 
             // updatar a menor distancia de seed positiva
 
