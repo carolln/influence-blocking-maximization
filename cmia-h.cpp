@@ -12,7 +12,8 @@ vector<double> DecInf;
 
 bool montandonegs = true;
 
-double theta = 0.002, thetas[5] = {0.0025, 0.005, 0.01, 0.02, 0.05};
+float theta = 0.002;
+vector<float>thetas = {0.0025, 0.005, 0.01, 0.02, 0.05};
 
 //veroegocioladonopositivo ou negativo somethibg lije that
 
@@ -77,7 +78,6 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
             int to = out_adj[v][i].first; // checar isso aqqqqq
             double len = -1*log(out_adj[v][i].second);
 
-
             // se nao foi alcancado e nao faz parte das negative seeds
             /*if (neg_s.count(out_adj[v][i].second) == 0 && negative_seeds.count(out_adj[v][i].second) == 0) {
                 neg_s.insert(out_adj[v][i].second);
@@ -131,7 +131,8 @@ MIA build_mia(vector<pair<int, double>> out_adj[], int vertex, MIA &mioa) { // d
 }*/
 
 
-void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA &miia, set<int> &D, bool bols[], int &dnmax, queue<pii> q ={}, int L = 0, bool waaait4me = true) {
+void build_D(vector<pair<int, double>> in_adj[], int vertex, MIA &miia, set<int> &D,
+     vector<bool> &bols, int &dnmax, queue<pii> q ={}, int L = 0, bool waaait4me = true) {
 
     q.push({vertex, (long long)0});
     bols[vertex] = 1;
@@ -276,11 +277,11 @@ signed main () {
     vector<pair<int, double>> out_adj[n], log_out_adj[n];
     vector<pair<int,double>> in_adj[n], log_in_adj[n];
 
-    double apn[n][n]; // cada no tem ate n probabilidades (distancias that can reach n)
+    vector<vector<double>> apn(n, vector<double>(n, 0)); // cada no tem ate n probabilidades (distancias that can reach n)
 
     
     DecInf.assign(n, 0);
-    int dc[n] = {INF}; // might have to change this tho...... no pseudocodigo ele considera
+    vector<int> dc(n, INF); // might have to change this tho...... no pseudocodigo ele considera
                         // o estado como sendo vertice, conjunto atual das seeds positivas Sp
                         // talvez bitset seja a melhor opção?
 
@@ -333,7 +334,7 @@ signed main () {
         // contruir MIIA
         // construir o set das distancias
 
-        bool bols[n] = {0};
+        vector<bool> bols(n, false);
 
         set<int> D; // distinct distances to our vertex in question
 
@@ -388,7 +389,7 @@ signed main () {
 
             int outro;
 
-            auto pera = upper_bound(in_miias_arvores[*a].sorted_negative_seeds.begin(), in_miias_arvores[*itr].sorted_negative_seeds.end(), meus_piis[*a].distances[*itr]-1);
+            auto pera = upper_bound(in_miias_arvores[*a].sorted_negative_seeds.begin(), in_miias_arvores[*a].sorted_negative_seeds.end(), meus_piis[*a].distances[*itr]-1);
 
             // se o primeiro já for maior, fodase vai ser infinito
             if (in_miias_arvores[*a].sorted_negative_seeds[0] > meus_piis[*a].distances[*itr]-1) {
