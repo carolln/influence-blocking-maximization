@@ -1,0 +1,3 @@
+alcance negativo geral: 15.3381 nos
+ainda ativados com blockers:          10.3724
+salvos pela heuristica:               4.9657   (32.3749% bloqueado)

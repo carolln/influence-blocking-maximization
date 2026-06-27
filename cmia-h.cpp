@@ -560,7 +560,7 @@ signed main () {
 
     output.close();
 
-    output.open("output_meio/cmia-h-time-nandatasets/NetHEPT.txtoseconds.txt");
+    output.open("output_meio/cmia-h-time-nanoseconds.txt");
 
     output << chrono::duration_cast<chrono::nanoseconds>(duracao).count() << "\n";
 

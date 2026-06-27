@@ -22,11 +22,11 @@ signed main(){
 
     if(s == "griddy"){
         filename += "greedy-seeds.txt";
-        outname += "greedy-seeds.txt";
+        outname += "greedy-stats.txt";
     }
     else if(s == "cmia"){
         filename += "cmia-h-seeds.txt";
-        outname += "cmia-h-seeds.txt";
+        outname += "cmia-h-stats.txt";
     }
     else{
         cout << "errou os nomes tente denovo\n";
@@ -103,7 +103,7 @@ signed main(){
     cout << fixed << setprecision(3);
     cout << "alcance negativo geral: " << base / R << " nos\n";
     cout << "ainda ativados com blockers:          " << massa / R;
-    cout << "salvados pela heuristica:               " << salvos / R ;
+    cout << "\nsalvos pela heuristica:               " << salvos / R ;
     if (base > 0) cout << "   (" << 100.0 * salvos / base << "% bloqueado)";
     cout << "\n";
 
